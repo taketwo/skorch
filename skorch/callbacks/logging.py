@@ -99,6 +99,7 @@ class PrintLog(Callback):
         self.tablefmt = tablefmt
         self.floatfmt = floatfmt
         self.stralign = stralign
+        self.message_data = list()
 
     def initialize(self):
         self.first_iteration_ = True
@@ -145,7 +146,7 @@ class PrintLog(Callback):
 
         for key in sorted(keys):
             if not (
-                    (key in ('epoch', 'dur')) or
+                    (key in ('epoch', 'dur', 'message')) or
                     (key in self.keys_ignored_) or
                     key.endswith('_best') or
                     key.startswith('event_')
@@ -157,6 +158,8 @@ class PrintLog(Callback):
                 sorted_keys.append(key)
         if ('dur' in keys) and ('dur' not in self.keys_ignored_):
             sorted_keys.append('dur')
+        if ('message' in keys) and ('message' not in self.keys_ignored_):
+            sorted_keys.append('message')
         return sorted_keys
 
     def _yield_keys_formatted(self, row):
@@ -189,6 +192,7 @@ class PrintLog(Callback):
     # pylint: disable=unused-argument
     def on_epoch_end(self, net, **kwargs):
         data = net.history[-1]
+        data['message'] = ' '.join(self.message_data)
         verbose = net.verbose
         tabulated = self.table(data)
 
@@ -201,6 +205,11 @@ class PrintLog(Callback):
         self._sink(tabulated.rsplit('\n', 1)[-1], verbose)
         if self.sink is print:
             sys.stdout.flush()
+
+        self.message_data = list()
+
+    def record_epoch_message(self, msg):
+        self.message_data.append(msg)
 
 
 class ProgressBar(Callback):
